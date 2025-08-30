@@ -286,7 +286,7 @@ void run_pywal(config_t *config) {
 	}
 	
 	char cmd_buf[256];
-	snprintf(cmd_buf, sizeof(cmd_buf), "wal -i %s >> %s/last_wal.log 2>&1", json_filename->valuestring, TEMP_DIR);
+	snprintf(cmd_buf, sizeof(cmd_buf), "matugen image %s -m dark>> %s/last_wal.log 2>&1", json_filename->valuestring, TEMP_DIR);
 	log_verbose("running pywal command:", config);
 	log_verbose(cmd_buf, config);
 
