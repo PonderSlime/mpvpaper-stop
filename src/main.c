@@ -17,7 +17,7 @@
 typedef struct {
     bool verbose;
     bool fork_process;
-    bool do_pywal;
+    bool do_matugen;
     char* mpvpaper_socket_path;
     int mpvpaper_socket_fd;
     char* hyprland_socket_path;
@@ -34,7 +34,7 @@ void print_help(const char *program_name) {
     printf("  -p, --socket-path PATH Path to the mpvpaper socket (default: /tmp/mpvsocket)\n");
     printf("  -w, --socket-wait-time TIME Wait time for the socket in milliseconds (default: 5000)\n");
     printf("  -t, --period TIME      Polling period in milliseconds (default: 1000)\n");
-    printf("  -c, --pywal	         Runs pywal on pause");
+    printf("  -c, --matugen	         Runs matugen on pause");
     printf("  -h, --help             Shows this help message\n");
 }
 
@@ -220,8 +220,8 @@ void create_temp_dir() {
     }
 }
 
-void validate_pywal(config_t *config) {
-	FILE *fp = popen("wal -v", "r");
+void validate_matugen(config_t *config) {
+	FILE *fp = popen("matugen --version", "r");
 	if (fp == NULL) {
 		perror("error: unable to open process");
 		exit(EXIT_FAILURE);
@@ -229,11 +229,11 @@ void validate_pywal(config_t *config) {
 
 	int status = WEXITSTATUS(pclose(fp));
 	if (status != EXIT_SUCCESS) {
-		perror("error: cannot run pywal");
+		perror("error: cannot run matugen");
 		exit(EXIT_FAILURE);
 	}
 
-	log_verbose("pywal is available", config);
+	log_verbose("matugen is available", config);
 	create_temp_dir();
 
 	char *json_str = send_to_mpv_socket(SET_MPVPAPER_SCREENSHOT_DIR, config);
@@ -255,7 +255,7 @@ void validate_pywal(config_t *config) {
 	log_verbose("screenshot directory successfully set", config);
 }
 
-void run_pywal(config_t *config) {
+void run_matugen(config_t *config) {
 	log_verbose("attempting to perform screenshot...", config);
 	char *json_str = send_to_mpv_socket(QUERY_MPVPAPER_SOCKET_DO_SCREENSHOT, config);
 	if(!json_str) {
@@ -286,8 +286,8 @@ void run_pywal(config_t *config) {
 	}
 	
 	char cmd_buf[256];
-	snprintf(cmd_buf, sizeof(cmd_buf), "matugen image %s -m dark>> %s/last_wal.log 2>&1", json_filename->valuestring, TEMP_DIR);
-	log_verbose("running pywal command:", config);
+	snprintf(cmd_buf, sizeof(cmd_buf), "matugen image %s -m dark>> %s/last_matugen.log 2>&1", json_filename->valuestring, TEMP_DIR);
+	log_verbose("running matugen command:", config);
 	log_verbose(cmd_buf, config);
 
 	FILE *fp = popen(cmd_buf, "r");
@@ -298,11 +298,11 @@ void run_pywal(config_t *config) {
 	
 	int status = WEXITSTATUS(pclose(fp));
 	if (status != EXIT_SUCCESS) {
-		perror("error: failed to run pywal");
+		perror("error: failed to run matugen");
 		exit(EXIT_FAILURE);
 	}
 
-	log_verbose("pywal ran succesfully", config);
+	log_verbose("matugen ran succesfully", config);
 	log_verbose("removing screenshot:", config);
 	log_verbose(json_filename->valuestring, config);
 
@@ -325,7 +325,7 @@ void pause_mpv(config_t* config) {
     log_verbose("Pausing", config);
     char* response = send_to_mpv_socket(SET_MPVPAPER_SOCKET_PAUSE, config);
 
-    if(config->do_pywal) run_pywal(config);
+    if(config->do_matugen) run_matugen(config);
 
     if (response) free(response);
 }
@@ -387,7 +387,7 @@ int main(int argc, char **argv) {
         {"socket-path", required_argument, NULL, 'p'},
         {"fork", no_argument, NULL, 'f'},
         {"verbose", no_argument, NULL, 'v'},
-        {"pywal", no_argument, NULL, 'c'},
+        {"matugen", no_argument, NULL, 'c'},
         {"socket-wait-time", required_argument, NULL, 'w'},
         {0, 0, 0, 0}
     };
@@ -416,7 +416,7 @@ int main(int argc, char **argv) {
                 config.socket_wait_time = atoi(optarg);
                 break;
             case 'c':
-            	config.do_pywal = true;
+            	config.do_matugen = true;
             	break;
             default:
                 print_help(argv[0]);
@@ -430,7 +430,7 @@ int main(int argc, char **argv) {
     config.mpvpaper_socket_fd = initialize_socket(config.mpvpaper_socket_path);
     config.hyprland_socket_fd = initialize_socket(config.hyprland_socket_path);
 
-    if(config.do_pywal) validate_pywal(&config);
+    if(config.do_matugen) validate_matugen(&config);
 
     log_verbose("Starting monitoring loop", &config);
 

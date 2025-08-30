@@ -4,3 +4,4 @@ cmake-build-release/
 
 *.sh
 !build.sh
+build/
